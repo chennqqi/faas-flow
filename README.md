@@ -1,22 +1,22 @@
-# Faas-flow - Function Composition for [Openfaas](https://github.com/openfaas/faas)
+# Faas-flow - Function Composition for [OpenFaaS](https://github.com/openfaas/faas)
 [![Build Status](https://travis-ci.org/s8sg/faas-flow.svg?branch=master)](https://travis-ci.org/s8sg/faas-flow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GoDoc](https://godoc.org/github.com/s8sg/faas-flow?status.svg)](https://godoc.org/github.com/s8sg/faas-flow)
 [![OpenTracing Badge](https://img.shields.io/badge/OpenTracing-enabled-blue.svg)](http://opentracing.io)
 [![OpenFaaS](https://img.shields.io/badge/openfaas-serverless-blue.svg)](https://www.openfaas.com)
      
-> - [x] **Pure**      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FaaS with [Openfaas](https://github.com/openfaas/faas) 
+> - [x] **Pure**      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FaaS with [OpenFaaS](https://github.com/openfaas/faas) 
 > - [x] **Fast**      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Built with `Go`    
 > - [x] **Secured**   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; With `HMAC`
 > - [x] **Stateless** &nbsp;&nbsp;&nbsp;&nbsp; By design   
 > - [x] **Tracing**   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; With `open-tracing`    
 > - [x] **Available** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;As `faas-flow` template 
    
-[**Faas-flow tower**](https://github.com/s8sg/faas-flow-tower) visualizes and monitors flow function  
+[**Faas-flow tower**](https://github.com/s8sg/faas-flow-tower) visualizes and monitors flow functions  
 
 ## Overview
 
-Faas-flow allows you to realize OpenFaaS function composition with ease. By defining a simple pipeline, you can orchestrate multiple functions without having to worry about internals
+Faas-flow allows you to realize OpenFaaS function composition with ease. By defining a simple pipeline, you can orchestrate multiple functions without having to worry about the internals
 
 ```go
 func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
@@ -24,7 +24,7 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
     return
 }
 ```
-After building and deploying, it will give you a openfaas function that orchestrates calling `Func2` with the output of `Func1`
+After building and deploying, it will give you an OpenFaaS function that orchestrates calling `Func2` with the output of `Func1`
 
 ## Use Cases
 
@@ -32,19 +32,19 @@ Faas-flow as a function composure provides the back-bone for building  complex s
    
 #### Data Processing Pipeline
 
-Faas-flow can orchestrate a pipeline with long and short running function performing ETL jobs without having to orchestrate them manually or maintaining a separate application. Faas-flow ensures the execution order of several functions running in parallel or dynamically and provides rich construct to aggregate results while maintaining the intermediate data.
+Faas-flow can orchestrate a pipeline with long and short running function performing ETL jobs without having to orchestrate them manually or maintaining a separate application. Faas-flow ensures the execution order of several functions running in parallel or dynamically and provides rich construct to aggregate results while maintaining the intermediate data
    
 #### Application Orchestration Workflow
 
-Functions are great for isolating certain functionalities of an application. Although one still need to call the functions, write workflow logic, handle parallel processing and retries on failures. Using Faas-flow you can combine multiple openfaas functions with little codes while your workflow will scale up/down automatically to handle the load
+Functions are great for isolating certain functionalities of an application. Although one still need to call the functions, write workflow logic, handle parallel processing and retries on failures. Using Faas-flow you can combine multiple OpenFaaS functions with little codes while your workflow will scale up/down automatically to handle the load
     
 #### Function Reusability
 
-Fass-flow allows you to write function only focused on solving one problem without having to worry about the next. It makes function loosely coupled from the business logic promoting reusability. You can write the stateless function and use it across multiple applications, where faas-flow maintains the execution state for individual workflow per requests
+Fass-flow allows you to write function only focused on solving one problem without having to worry about the next. It makes function loosely coupled from the business logic promoting reusability. You can write the stateless function and use it across multiple applications, where Faas-flow maintains the execution state for individual workflow per requests
      
      
 ## Pipeline Definition
-By supplying a number of pipeline operators, complex compostion can be achieved with little work:
+By supplying a number of pipeline operators, the complex composition can be achieved with little work:
 ![alt overview](https://github.com/s8sg/faas-flow/blob/master/doc/overview.jpg)
 
 The above pipelines can be achieved with little, but powerfull code:
@@ -69,7 +69,7 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
                         // do something
                         return data, nil
                 })
-        dag.Node("n3").Callback("http://gateway:8080/function/fake-storage")
+        dag.Node("n3")
         dag.Edge("n1", "n2")
         dag.Edge("n2", "n3")
         return
@@ -91,7 +91,7 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
         dag.Node("n4", faasflow.Aggregator(func(data map[string][]byte) ([]byte, error) {
                 // aggregate branch result data["n2"] and data["n3"]
                 return []byte(""), nil
-        })).Callback("http://gateway:8080/function/fake-storage")
+        }))
 
         dag.Edge("n1", "n2")
         dag.Edge("n1", "n3")
@@ -140,36 +140,36 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
                 // do something
                 return data, nil
         })
-        dag.Node("n2").Callback("http://gateway:8080/function/fake-storage")
+        dag.Node("n2")
         dag.Edge("n1", "C")
         dag.Edge("C", "n2")
 }
 ```
-Full implementions of the above examples are available [here](https://github.com/s8sg/faasflow-example)
+Full implementation of the above examples are available [here](https://github.com/s8sg/faasflow-example)
 ## Faas-flow Design
-The current design consideration are made based on the below goals  
-> 1. Leverage the openfaas platform   
+The current design consideration is made based on the below goals  
+> 1. Leverage the OpenFaaS platform   
 > 2. Not to violate the notions of function   
-> 3. Provide flexibility, scalability and adaptibility   
+> 3. Provide flexibility, scalability, and adaptability    
 
 #### Just as function as any other
-Faas-flow is deployed and provisioned just like any other openfaas function. It allows faas-flow to take advantage of rich functionalities available on Openfaas. `faas-flow` provide a openfaas template and just like any other openfaas function it can be deployed with `faas-cli`   
+Faas-flow is deployed and provisioned just like any other OpenFaaS function. It allows Faas-flow to take advantage of rich functionalities available on OpenFaaS. Faas-flow provide an OpenFaaS template (`faas-flow`) and just like any other OpenFaaS function it can be deployed with `faas-cli`   
 ![alt its a function](https://github.com/s8sg/faas-flow/blob/master/doc/design/complete-faas.jpg)
 
 #### Adapter pattern for zero intrumenttaion in code
-Faas-flow function follow the adapter pattern. Here the adaptee is the functions and the adapter is `faas-flow`. For each node execution, `faas-flow` handle the calls to the functions. Once the execution is over, it forwards an event to itself. This way the arrangement logic is seperated from the functions and is implemented in the adapter. Compositions need no code instrumentations, making functions completly independent of the compositions details
+Faas-flow function follows the adapter pattern. Here the adaptee is the functions and the adapter is the flow. For each node execution, Faas-flow handle the calls to the functions. Once the execution is over, it forwards an event to itself. This way the arrangement logic is separated from the functions and is implemented in the adapter. Compositions need no code instrumentations, making functions completely independent of the details of the compositions  
 ![alt function is independent of composition](https://github.com/s8sg/faas-flow/blob/master/doc/design/adapter-pattern.jpg)
 
 #### Aggregate pattern as chaining
-Aggregatation of seperate function calls are done as chaining. Multiple functions can be called from a single node with order maintained as per the chain. This way one execution node can be implemented as an aggregator function that invokes multiple functions, collects the results, optionally applies business logic, and returns a consolidated response to the client or forward to next nodes. Faas-flow fuses the adapter pattern and aggregate pattern to support more complex usecases
+Aggregation of separate function calls is done as chaining. Multiple functions can be called from a single node with order maintained as per the chain. This way one execution node can be implemented as an aggregator function that invokes multiple functions collects the results, optionally applies business logic, and returns a consolidated response to the client or forward to next nodes. Faas-flow fuses the adapter pattern and aggregate pattern to support more complex use cases
 ![alt aggregation](https://github.com/s8sg/faas-flow/blob/master/doc/design/aggregate-pattern.jpg)
 
 #### Event driven iteration
-Openfaas uses [Nats](https://nats.io) for event delivery and faas-flow leverages openfaas platform. Node execution in `faas-flow` starts by a completion event of one or more previous nodes. A completion event denotes that all the previous dependent nodes have completed. The event carries the execution state and identifies the next node to execute. With events faas-flow asynchronously carry-on execution of nodes by iterating itself over and over till all nodes are executed
+OpenFaaS uses [Nats](https://nats.io) for event delivery and Faas-flow leverages OpenFaaS platform. Node execution in Faas-flow starts by a completion event of one or more previous nodes. A completion event denotes that all the previous dependent nodes have completed. The event carries the execution state and identifies the next node to execute. With events Faas-flow asynchronously carry-on execution of nodes by iterating itself over and over till all nodes are executed
 ![alt iteration](https://github.com/s8sg/faas-flow/blob/master/doc/design/event-driven-iteration.jpg)
 
 #### 3rd party KV store for coordination 
-When executing branches, one node is dependent on more than one predecessor nodes. In that scenario, the event for completion is generated by coordination of earlier nodes. Like any distributed system the coordination is achieved via a centralized service. Faas-flow keeps the logic of the coordination controller inside of faas-flow implementation and lets the user use any external synchronous KV store by implementing [`StateStore`](https://godoc.org/github.com/s8sg/faas-flow#StateStore) 
+When executing branches, one node is dependent on more than one predecessor nodes. In that scenario, the event for completion is generated by coordination of earlier nodes. Like any distributed system the coordination is achieved via a centralized service. Faas-flow keeps the logic of the coordination controller inside of Faas-flow implementation and lets the user use any external synchronous KV store by implementing [`StateStore`](https://godoc.org/github.com/s8sg/faas-flow#StateStore) 
 ![alt coordination](https://github.com/s8sg/faas-flow/blob/master/doc/design/3rd-party-statestore.jpg)
 
 #### 3rd party Storage for intermediate data
@@ -177,7 +177,7 @@ Results from function execution and intermediate data can be handled by the user
 ![alt storage](https://github.com/s8sg/faas-flow/blob/master/doc/design/3rd-party-storage.jpg)
     
     
-Faas-flow design is not fixed and like any good design it is evolving. Please contribute to make it better.  
+Faas-flow design is not fixed and like any good design, it is evolving. Please contribute to make it better.  
 
 ## Getting Started
 This example implements a very simple flow to `Greet`
@@ -204,21 +204,21 @@ Edit function stack file `greet.yml`
     environment:
       read_timeout: 120 # A value larger than `max` of all execution times of Nodes
       write_timeout: 120 # A value larger than `max` of all execution times of Nodes
+      exec_timeout: 0 # disable exec timeout
       write_debug: true
       combine_output: false
-      workflow_name: "greet" # The name of the flow function, faasflow use this to forward completion event
     environment_file:
       - flow.yml
 ``` 
      
 #### Add configuration
-Add a seperate file `flow.yml` with faas-flow related configuration.
+Add a separate file `flow.yml` with faas-flow related configuration.
 ```yaml
 environment:
-  gateway: "gateway:8080" # The address of openfaas gateway, faasflow use this to forward completion event
+  gateway: "gateway:8080" # The address of OpenFaaS gateway, Faas-flow use this to forward completion event
   # gateway: "gateway.openfaas:8080" # For K8s 
   enable_tracing: false # tracing allow to trace internal node execution with opentracing
-  enable_hmac: true # hmac adds extra layer of security by validating the event source
+  enable_hmac: true # hmac adds an extra layer of security by validating the event source
 ```
       
 #### Edit function defnition 
@@ -237,53 +237,82 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
 #### Build and Deploy
 Build and deploy
 ```bash
-faas build
-faas deploy
+faas build -f greet.yml
+faas deploy -f greet.yml
 ```
 > This function will generate one Synchronous node     
 > ```
 > Modify("name") -> Hello name
 > ```
 All calls will be performed in one single execution of the flow function and result will be returned to the callee    
-> Note: For flow that has more than one nodes, faas-flow doesn't return any response. External storage or `callback` can be used to retrive async result 
+> Note: For flow that has more than one nodes, Faas-flow doesn't return any response. External storage or callback can be used to retrieve an async result
      
 #### Invoke
 ```
 echo "Adam" | faas invoke greet
 ```
+## Deploy FaaS-Flow Infra
+[FaaS-Flow infra](https://github.com/s8sg/faas-flow-infra) allows to set up the components needed to run more advance workflows 
+> **[Deploy in Kubernets](https://github.com/s8sg/faas-flow-infra/blob/master/README.md#deploy-in-kubernets)**     
+> **[Deploy in Swarm](https://github.com/s8sg/faas-flow-infra/blob/master/README.md#deploy-in-docker-swarm)**  
+
           
 ## Request Tracking by ID
-For each new request faas-flow generates a unique `Request Id` for the flow. The same Id is used when logging 
+For each new request, faas-flow generates a unique `Request Id` for the flow. The same Id is used when logging 
 ```bash
 2018/08/13 07:51:59 [Request `bdojh7oi7u6bl8te4r0g`] Created
 2018/08/13 07:52:03 [Request `bdojh7oi7u6bl8te4r0g`] Received
 ```
-The assigned requestId is set on the response header `X-Faas-Flow-Reqid` 
-
+The assigned request Id is set on the response header `X-Faas-Flow-Reqid` 
+One may provide custom request Id by setting `X-Faas-Flow-Reqid` in the request header    
     
 ## Request Tracing by Open-Tracing 
-    
-Request tracing can be retrived from `trace_server` once enabled. Tracing is the best way to monitor flows and execution status of each nodes for each requests
+   
+Request tracing can be retrieved from `trace_server` once enabled. Tracing is the best way to monitor flows and execution status of each node for each request   
 
 #### Edit `flow.yml`
 Enable tracing and add trace server as:
 ```yaml
       enable_tracing: true
       trace_server: "jaegertracing:5775"
+      # trace_server: "jaegertracing.faas-flow-infra:5775" # use this for kubernets
 ``` 
     
 #### Start The Trace Server 
-`jaeger` (opentracing-1.x) used for tracing backend  
+`jaeger` (opentracing-1.x) is the tracing backend  
 Quick start with jaegertracing: https://www.jaegertracing.io/docs/1.8/getting-started/   
     
 #### Use [faas-flow-tower](https://github.com/s8sg/faas-flow-tower)
 Retrive the requestID from `X-Faas-Flow-Reqid` header of response     
 
-Below is an example of tracing information for [example-branching-in-faas-flow](https://github.com/s8sg/branching-in-faas-flow) in [faas-flow-tower](https://github.com/s8sg/faas-flow-tower)  
+Below is an example of tracing information for [example-branching-in-Faas-flow](https://github.com/s8sg/branching-in-faas-flow) in [Faas-flow-tower](https://github.com/s8sg/faas-flow-tower)  
 ![alt monitoring](https://github.com/s8sg/faas-flow-tower/blob/master/doc/monitoring.png)
-    
-     
-    
+   
+## Use of Callback
+To receive a result of long running **FaaSFlow** request, you can specify the `X-Faas-Flow-Callback-Url`. FaaSFlow will invoked the callback URL with the final result and with the request ID set as `X-Faas-Flow-Reqid` in request Header. `X-Callback-Url` from OpenFaaS is not supported in FaaSFlow.   
+   
+## Pause, Resume or Stop Request
+
+A request in faas-flow has three states :
+1. Running
+2. Paused
+3. Stopped
+> Faas-flow doesn't keep the state of a finished request  
+
+To pause a running request:
+```
+faas invoke <workflow_name> --query pause-flow=<request_id>
+```
+To resume a paused request 
+```
+faas invoke <workflow_name> --query resume-flow=<request_id>
+```
+To stop an active (pasued/running) request
+```
+faas invoke <workflow_name> --query stop-flow=<request_id>
+```
+
+
 ## Use of context
 
 Context can be used inside definition for differet usecases. Context provide verious information such as:   
@@ -294,7 +323,7 @@ along with that it wraps the **DataStore** to store data
 
 #### Store data in context with `DataStore`
 Context uses `DataStore` to store/retrive data. User can do the same by 
-calling `Get()`, `Set()` and `Del()` from `context`:
+calling `Get()`, `Set()`, and `Del()` from `context`:
 ```go
      flow.SyncNode().
      Modify(func(data []byte) {
@@ -304,14 +333,14 @@ calling `Get()`, `Set()` and `Del()` from `context`:
      }).
      Apply("myfunc").
      Modify(func(data []byte) {
-          // retrived the data that was set in the context
+          // retrieve the data that was set in the context
           commitsha, _ = context.GetString("commitsha")
           // use the query
      })
 ```
 
 #### Geting Http Query to Workflow: 
-Http Query to flow can be used from context as
+Http Query to flow can be used retrieved from context using `context.Query`
 ```go
     flow.SyncNode().Apply("myfunc", Query("auth-token", context.Query.Get("token"))). // pass as a function query
      	 Modify(func(data []byte) {
@@ -319,18 +348,18 @@ Http Query to flow can be used from context as
      	 })
 ```  
 
-#### Other from context:
+#### Use of request context:
 Node, requestId, State is provided by the `context`
 ```go
    currentNode := context.GetNode()
    requestId := context.GetRequestId()
    state := context.State
 ```
-for more details check `[faas-flow-GoDoc](https://godoc.org/github.com/s8sg/faas-flow)
+for more details check Faas-flow [GoDoc](https://godoc.org/github.com/s8sg/faas-flow)
 
 
 ## External `StateStore` for coordination controller
-Any DAG which has a branch needs coordination for nodes completion events. Faas-flow implements coordination controller which allows user to use any external Synchoronous KV store. User can define custom state-store with `StateStore` interface.   
+Any DAG which has a branch needs coordination for nodes completion events, also request execution state needs to me maintained. Faas-flow implements coordination controller and request state store which allows the user to use any external Synchronous KV store. User can define custom state-store with `StateStore` interface   
 ```go
 type StateStore interface {
         // Configure the StateStore with flow name and request ID
@@ -355,13 +384,14 @@ func DefineStateStore() (faasflow.StateStore, error) {
         return consulss, err
 }
 ```
+`StateStore` is mandetory for a FaaSFlow to operate.  
   
 #### Available state-stores:  
 * **[ConsulStateStore](https://github.com/s8sg/faas-flow-consul-statestore)** statestore implementation with **consul**    
 * **[EtcdStateStore](https://github.com/s8sg/faas-flow-etcd-statestore)** statewtore implementation with **etcd**      
 
-## External `DataStore` for storage controller 
-Faas-flow uses the `DataStore` to store partially completed data between nodes and request context data. Faas-flow implements storage controller to handle storage that allows user to use any external object store. User can define custom data-store with `DataStore` interface.   
+## External `DataStore` for storage controller
+Faas-flow uses the `DataStore` to store partially completed data between nodes and request context data. Faas-flow implements a storage controller to handle storage that allows the user to use any external object-store. User can define custom data-store with `DataStore` interface. 
 ```go
  type DataStore interface {
         // Configure the DaraStore with flow name and request ID
@@ -388,13 +418,14 @@ func DefineDataStore() (faasflow.DataStore, error) {
         return miniods, err
 }
 ```
+`DataStore` is only needed for dags that stores intermediate data
 
 #### Available data-stores:  
 * **[MinioDataStore](https://github.com/s8sg/faas-flow-minio-datastore)** allows to store data in **amazon s3** or local **minio DB**
 
      
 ## Cleanup with `Finally()`
-Finally provides an efficient way to perform post execution steps of the flow. If specified `Finally()` invokes in case of both failure and success of the flow. A Finally method can be set as:
+Finally provides an efficient way to perform post-execution steps of the flow. If specified `Finally()` invokes in case of both failure and success of the flow. A Finally method can be set as:
 ```go
 func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
      // Define flow
@@ -404,7 +435,7 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
           context.Set("commitsha", req.Sha)
      }).
      Apply("myfunc").Modify(func(data []byte) {
-          // retrived the data in different node from context
+          // retrieve the data in different node from context
           commitsha, _ = context.GetString("commitsha")
      })
      flow.OnFailure(func(err error) {
@@ -418,5 +449,7 @@ func Define(flow *faasflow.Workflow, context *faasflow.Context) (err error) {
 ```
  
 ## Contribute:
-> **Issue/Suggestion** Create an issue at [faas-flow-issue](https://github.com/s8sg/faas-flow/issues).  
-> **ReviewPR/Implement** Create Pull Request at [faas-flow-pr](https://github.com/s8sg/faas-flow/issues).  
+> **Issue/Suggestion** Create an issue at [Faas-flow-issue](https://github.com/s8sg/faas-flow/issues).  
+> **ReviewPR/Implement** Create Pull Request at [Faas-flow-pr](https://github.com/s8sg/faas-flow/issues).  
+
+Join Faasflow [Slack](https://join.slack.com/t/faas-flow/shared_invite/enQtNzgwNDY2MjI4NTc5LWZiOGQ4M2ZlZTI0OTI0ZjU5YmUyMDgwOWJiOWU0YzIzMGQ3Y2QxMTMzMDlhZGZhYWFlZTkzMGQxMzU4NDdmOGU) for more

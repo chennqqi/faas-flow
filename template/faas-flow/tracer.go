@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -21,7 +20,8 @@ type traceHandler struct {
 	reqSpan    opentracing.Span
 	reqSpanCtx opentracing.SpanContext
 
-	nodeSpans map[string]opentracing.Span
+	nodeSpans      map[string]opentracing.Span
+	operationSpans map[string]map[string]opentracing.Span
 }
 
 // CustomHeadersCarrier satisfies both TextMapWriter and TextMapReader
@@ -63,15 +63,6 @@ func (c *CustomHeadersCarrier) Set(key, val string) {
 	c.envMap[key] = val
 }
 
-// isTracingEnabled check if tracing enabled for the function
-func isTracingEnabled() bool {
-	tracing := os.Getenv("enable_tracing")
-	if strings.ToUpper(tracing) == "TRUE" {
-		return true
-	}
-	return false
-}
-
 // getTraceServer get the traceserver address
 func getTraceServer() string {
 	traceServer := os.Getenv("trace_server")
@@ -84,10 +75,6 @@ func getTraceServer() string {
 // initRequestTracer init global trace with configuration
 func initRequestTracer(flowName string) (*traceHandler, error) {
 	tracerObj := &traceHandler{}
-
-	if !isTracingEnabled() {
-		return tracerObj, nil
-	}
 
 	agentPort := getTraceServer()
 
@@ -108,22 +95,19 @@ func initRequestTracer(flowName string) (*traceHandler, error) {
 		config.Logger(jaeger.StdLogger),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to init tracer, error %v", err.Error())
+		return nil, fmt.Errorf("failed to init tracer, error %v", err.Error())
 	}
 
 	tracerObj.closer = traceCloser
 	tracerObj.tracer = opentracer
 	tracerObj.nodeSpans = make(map[string]opentracing.Span)
+	tracerObj.operationSpans = make(map[string]map[string]opentracing.Span)
 
 	return tracerObj, nil
 }
 
 // startReqSpan starts a request span
 func (tracerObj *traceHandler) startReqSpan(reqId string) {
-	if !isTracingEnabled() {
-		return
-	}
-
 	tracerObj.reqSpan = tracerObj.tracer.StartSpan(reqId)
 	tracerObj.reqSpan.SetTag("request", reqId)
 	tracerObj.reqSpanCtx = tracerObj.reqSpan.Context()
@@ -132,10 +116,6 @@ func (tracerObj *traceHandler) startReqSpan(reqId string) {
 // continueReqSpan continue request span
 func (tracerObj *traceHandler) continueReqSpan(reqId string, header http.Header) {
 	var err error
-
-	if !isTracingEnabled() {
-		return
-	}
 
 	tracerObj.reqSpanCtx, err = tracerObj.tracer.Extract(
 		opentracing.HTTPHeaders,
@@ -156,14 +136,13 @@ func (tracerObj *traceHandler) continueReqSpan(reqId string, header http.Header)
 // extendReqSpan extend req span over a request
 // func extendReqSpan(url string, req *http.Request) {
 func (tracerObj *traceHandler) extendReqSpan(reqId string, lastNode string, url string, req *http.Request) {
-	if !isTracingEnabled() {
-		return
-	}
-
 	// TODO: as requestSpan can't be regenerated with the span context we
-	//       forward the nodeSpan's SpanContext
+	//       forward the nodes SpanContext
 	// span := reqSpan
 	span := tracerObj.nodeSpans[lastNode]
+	if span == nil {
+		return
+	}
 
 	ext.SpanKindRPCClient.Set(span)
 	ext.HTTPUrl.Set(span, url)
@@ -184,10 +163,6 @@ func (tracerObj *traceHandler) extendReqSpan(reqId string, lastNode string, url 
 
 // stopReqSpan terminate a request span
 func (tracerObj *traceHandler) stopReqSpan() {
-	if !isTracingEnabled() {
-		return
-	}
-
 	if tracerObj.reqSpan == nil {
 		return
 	}
@@ -197,9 +172,6 @@ func (tracerObj *traceHandler) stopReqSpan() {
 
 // startNodeSpan starts a node span
 func (tracerObj *traceHandler) startNodeSpan(node string, reqId string) {
-	if !isTracingEnabled() {
-		return
-	}
 
 	tracerObj.nodeSpans[node] = tracerObj.tracer.StartSpan(
 		node, ext.RPCServerOption(tracerObj.reqSpanCtx))
@@ -216,18 +188,44 @@ func (tracerObj *traceHandler) startNodeSpan(node string, reqId string) {
 
 // stopNodeSpan terminates a node span
 func (tracerObj *traceHandler) stopNodeSpan(node string) {
-	if !isTracingEnabled() {
-		return
-	}
 
 	tracerObj.nodeSpans[node].Finish()
 }
 
-// flushTracer flush all pending traces
-func (tracerObj *traceHandler) flushTracer() {
-	if !isTracingEnabled() {
+// startOperationSpan starts an operation span
+func (tracerObj *traceHandler) startOperationSpan(node string, reqId string, operationId string) {
+
+	if tracerObj.nodeSpans[node] == nil {
 		return
 	}
 
+	operationSpans, ok := tracerObj.operationSpans[node]
+	if !ok {
+		operationSpans = make(map[string]opentracing.Span)
+		tracerObj.operationSpans[node] = operationSpans
+	}
+
+	nodeContext := tracerObj.nodeSpans[node].Context()
+	operationSpans[operationId] = tracerObj.tracer.StartSpan(
+		operationId, opentracing.ChildOf(nodeContext))
+
+	operationSpans[operationId].SetTag("request", reqId)
+	operationSpans[operationId].SetTag("node", node)
+	operationSpans[operationId].SetTag("operation", operationId)
+}
+
+// stopOperationSpan stops an operation span
+func (tracerObj *traceHandler) stopOperationSpan(node string, operationId string) {
+
+	if tracerObj.nodeSpans[node] == nil {
+		return
+	}
+
+	operationSpans := tracerObj.operationSpans[node]
+	operationSpans[operationId].Finish()
+}
+
+// flushTracer flush all pending traces
+func (tracerObj *traceHandler) flushTracer() {
 	tracerObj.closer.Close()
 }

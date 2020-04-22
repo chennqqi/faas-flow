@@ -2,14 +2,44 @@ package main
 
 import (
 	"fmt"
+	"github.com/s8sg/faas-flow/sdk"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+)
 
-	handler "github.com/openfaas-incubator/go-function-sdk"
+// HttpResponse of function call
+type HttpResponse struct {
+
+	// Body the body will be written back
+	Body []byte
+
+	// StatusCode needs to be populated with value such as http.StatusOK
+	StatusCode int
+
+	// Header is optional and contains any additional headers the function response should set
+	Header http.Header
+}
+
+// HttpRequest of function call
+type HttpRequest struct {
+	Body        []byte
+	Header      http.Header
+	QueryString string
+	Method      string
+	Host        string
+}
+
+// FunctionHandler used for a serverless Go method invocation
+type FunctionHandler interface {
+	Handle(req *HttpRequest, response *HttpResponse) (err error)
+}
+
+var (
+	stateStore sdk.StateStore
 )
 
 func makeRequestHandler() func(http.ResponseWriter, *http.Request) {
@@ -28,34 +58,39 @@ func makeRequestHandler() func(http.ResponseWriter, *http.Request) {
 			input = bodyBytes
 		}
 
-		req := &handler.Request{
+		req := &HttpRequest{
 			Body:        input,
 			Header:      r.Header,
 			Method:      r.Method,
 			QueryString: r.URL.RawQuery,
+			Host:        r.Host,
 		}
 
-		result := &handler.Response{}
-		result.Header = make(map[string][]string)
+		response := &HttpResponse{}
+		response.Header = make(map[string][]string)
 
-		resultErr := handle(req, result)
+		openfaasExecutor := &openFaasExecutor{defaultStateStore: stateStore}
 
-		for k, v := range result.Header {
+		responseErr := openfaasExecutor.Handle(req, response)
+
+		for k, v := range response.Header {
 			w.Header()[k] = v
 		}
 
-		if resultErr != nil {
-			fmt.Printf("[ Failed ] %v\n", resultErr)
+		if responseErr != nil {
+			errorStr := fmt.Sprintf("[ Failed ] %v\n", responseErr)
+			fmt.Printf(errorStr)
+			w.Write([]byte(errorStr))
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
-			if result.StatusCode == 0 {
+			if response.StatusCode == 0 {
 				w.WriteHeader(http.StatusOK)
 			} else {
-				w.WriteHeader(result.StatusCode)
+				w.WriteHeader(response.StatusCode)
 			}
 		}
 
-		w.Write(result.Body)
+		w.Write(response.Body)
 	}
 }
 
@@ -77,6 +112,17 @@ func parseIntOrDurationValue(val string, fallback time.Duration) time.Duration {
 func main() {
 	readTimeout := parseIntOrDurationValue(os.Getenv("read_timeout"), 10*time.Second)
 	writeTimeout := parseIntOrDurationValue(os.Getenv("write_timeout"), 10*time.Second)
+
+	var err error
+
+	stateStore, err = GetBoltStateStore("default.db")
+	if err != nil {
+		stateStore = &DefaultStateStore{}
+		log.Print("In-memory default StateStore initialized, " +
+			"Async and DAG request will fail without external StateStore")
+	}
+	log.Print("File based default StateStore initialized, " +
+		"distributed DAG request may fail without external StateStore")
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", 8082),
