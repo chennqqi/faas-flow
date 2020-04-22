@@ -11,11 +11,11 @@ import (
 	"regexp"
 	"strings"
 
-	faasflow "github.com/s8sg/faas-flow"
+	faasflow "github.com/chennqqi/faas-flow"
 
-	sdk "github.com/s8sg/faas-flow/sdk"
-	executor "github.com/s8sg/faas-flow/sdk/executor"
-	exporter "github.com/s8sg/faas-flow/sdk/exporter"
+	sdk "github.com/chennqqi/faas-flow/sdk"
+	executor "github.com/chennqqi/faas-flow/sdk/executor"
+	exporter "github.com/chennqqi/faas-flow/sdk/exporter"
 )
 
 const (
